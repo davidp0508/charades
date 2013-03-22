@@ -48,25 +48,25 @@ server_logoff(From, Player_List) ->
     lists:keydelete(From, 1, Player_List).
 
 
-%%% Server transfers a message between user
-%server_transfer(From, To, Message, Player_List) ->
-    %% check that the user is logged on and who he is
-%    case lists:keysearch(From, 1, Player_List) of
- %       false ->
-  %          From ! {ghs, stop, not_logged_on};
-   %     {value, {From, Name}} ->
-   %         server_transfer(From, Name, To, Message, Player_List)
-   % end.
-%%% If the user exists, send the message
-%server_transfer(From, Name, To, Message, Player_List) ->
-    %% Find the receiver and send the message
-%    case lists:keysearch(To, 2, Player_List) of
-%        false ->
-%            From ! {ghs, receiver_not_found};
-%        {value, {ToPid, To}} ->
-%%            ToPid ! {message_from, Name, Message}, 
- %           From ! {ghs, sent} 
- %   end.
+% Server transfers a message between user
+server_transfer(From, To, Message, Player_List) ->
+%check that the user is logged on and who he is
+    case lists:keysearch(From, 1, Player_List) of
+       false ->
+          From ! {ghs, stop, not_logged_on};
+     {value, {From, Name}} ->
+         server_transfer(From, Name, To, Message, Player_List)
+ end.
+% If the user exists, send the message
+server_transfer(From, Name, To, Message, Player_List) ->
+%Find the receiver and send the message
+    case lists:keysearch(To, 2, Player_List) of
+        false ->
+            From ! {ghs, receiver_not_found};
+        {value, {ToPid, To}} ->
+           ToPid ! {message_from, Name, Message}, 
+           From ! {ghs, sent} 
+   end.
 
 			
 join(Name) ->
