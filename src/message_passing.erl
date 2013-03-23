@@ -5,18 +5,20 @@
 %% This module inspired by trigonakis.com's Intro to Erlang: Message Passing segment
 
 -module(message_passing).
+-export([unicastSend/1, recvMsg/0, message/2]).
 
-%-export([unicastSend/1,recvMsg/0,message/2]).
 %-export([create_ring/1, connect_ring/1, player/1]). %how to export funcs to be used as interfaces to the class/module
 
 
 unicastSend(Message) ->
-	{_,Name,_} = Message,
-	case lists:member(Name, global:registered_names())  of %make sure it's registered
-		true  -> message(Name, Message);
-		false -> register(Name, spawn(message_passing, Name, []))
-	 %figure out the destination name from the Message body and try to send to it.
-	end.
+	Name = Message,
+	message(Name, testMsg).
+	%{_,Name,_} = Message,
+	%case lists:member(Name, global:registered_names()) of %make sure it's registered
+	%	true -> message(Name, Message);
+	%	false -> register(Name, spawn(message_passing, Name, []))
+	%figure out the destination name from the Message body and try to send to it.
+	%end.
 
 
 %% multicastSend(Message) ->
@@ -38,11 +40,12 @@ recvMsg() ->
 	end.
 
 message(ToName, Message) ->
-    case whereis(ToName) of % Test if the client is running
+	io:format("The registered names are ~p~n", [global:registered_names()]),
+    case global:whereis_name(ToName) of % Test if the client is running
         undefined ->
-            not_logged_on;
+            io:format("~p is ~p~n", [ToName, not_logged_on]);
         Pid -> Pid ! {message_to, ToName, Message},
-             ok
+             okman
 end.
 
 
