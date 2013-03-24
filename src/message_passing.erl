@@ -5,14 +5,14 @@
 %% This module inspired by trigonakis.com's Intro to Erlang: Message Passing segment
 
 -module(message_passing).
--export([unicastSend/1, recvMsg/0, message/2]).
+%-import(player, [start/1]).
+-export([unicastSend/1, recvMsg/0, message/2, start/1]).
 
-%-export([create_ring/1, connect_ring/1, player/1]). %how to export funcs to be used as interfaces to the class/module
 
-
-unicastSend(Message) ->
-	Name = Message,
-	message(Name, testMsg).
+unicastSend({Name, Node, Payload}) ->
+	%{Name, Node, Payload} = Message,
+	{Name,Node}!{Payload,node()}.
+	%message(Name, testMsg).
 	%{_,Name,_} = Message,
 	%case lists:member(Name, global:registered_names()) of %make sure it's registered
 	%	true -> message(Name, Message);
@@ -32,16 +32,18 @@ unicastSend(Message) ->
 
 
 recvMsg() ->
-	%try to receive a message. this probably doesn't happen like this, though. 
+	%try to receive a message. this probably doesn't happen like this, though.
+	io:format("Received a message"), 
 	receive
-		{ToName, Message} ->        
-		io:format("Hello World!~n", []);
-		_ -> io:format("Hello World!~n", [])
+		{Payload, FromName} ->        
+		io:format("Got message ~p from ~p!~n", [Payload, FromName]);
+		Message -> io:format("Hello World!~n", [])
 	end.
 
 message(ToName, Message) ->
-	io:format("The registered names are ~p~n", [global:registered_names()]),
-    case global:whereis_name(ToName) of % Test if the client is running
+	%io:format("The registered names are ~p~n", [global:registered_names()]),
+	io:format("The registered names are ~p~n", [registered()]),
+    case whereis(ToName) of %case global:whereis_name(ToName) of % Test if the client is running
         undefined ->
             io:format("~p is ~p~n", [ToName, not_logged_on]);
         Pid -> Pid ! {message_to, ToName, Message},
@@ -60,3 +62,16 @@ server_transfer(From, Name, To, Message, User_List) ->
             From ! {messenger, sent} 
     end.
 
+
+getUsername(Name) ->
+	io:format("Adding user ~p~n", [Name]).
+
+start(Name) ->
+	%case global:register_name(Name, spawn(player, getUsername, [Name])) of
+	case register(Name, spawn(message_passing, recvMsg, [])) of
+		true -> %yes -> 
+			io:format("Successful add~n"),
+			io:format("The registered names are ~p~n", [registered()]);
+		false -> %no -> 
+			io:format("Unable to add ~p~n", [Name])
+	end.
