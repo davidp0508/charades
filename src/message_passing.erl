@@ -5,13 +5,19 @@
 %% This module inspired by trigonakis.com's Intro to Erlang: Message Passing segment
 
 -module(message_passing).
-%-import(player, [start/1]).
--export([unicastSend/1, recvMsg/0, message/2, start/1]).
+-export([unicastSend/1, multicastSend/2, startMC/1, recvMsg/0, start/1]).
 
 
 unicastSend({Name, Node, Payload}) ->
-	%{Name, Node, Payload} = Message,
-	{Name,Node}!{Payload,node()}.
+	%Users = [{david, '128.237.135.133'}, {shifa, '128.237.238.133'}],
+	%case lists:keytake(Name, 1, Users) of
+	%	{_, {NodeName, IP}, [_]} -> io:format("found user ~p with ip ~p~nOriginal tuple list is ~p", [NodeName, IP, Users]);
+%		false -> io:format("failed to find user ~p~n", [Name]);
+%		Values -> io:format("Failed and found ~p~n", [Values])
+%	end.
+	io:format("Passed in name ~p, node ~p, and payload ~p~n", [Name, Node, Payload]),
+	{Name,Node}!{Payload,node()},
+	io:format("successfully sent message to ~p (~p)~n", [Name, Node]).
 	%message(Name, testMsg).
 	%{_,Name,_} = Message,
 	%case lists:member(Name, global:registered_names()) of %make sure it's registered
@@ -20,58 +26,39 @@ unicastSend({Name, Node, Payload}) ->
 	%figure out the destination name from the Message body and try to send to it.
 	%end.
 
+startMC({Name, Node, Payload}) ->
+	Users = [{david, '128.237.135.133'}, {joe, '128.237.135.133'}],
+	multicastSend({Name, Node, Payload}, Users).
 
-%% multicastSend(Message) ->
-%% 	member(Name, global:registered_names()) -> %make sure it's registered
-%% 		message(Name, Message); %figure out the destination from the Message body and try to send to it. Make sure it's registered?
-%% 		register(Name, spawn(message_passing, Name, [])), %else, register it?
-%% 		message(Name, Message)
-%% 	,
-%% 	foreach(unicastSend(Message), global:registered_names()) -> ok %try to go through all registered processes?
-%% 	end.
+
+multicastSend({Name, Node, Payload}, Users) ->
+	case lists:keytake(Name, 1, Users) of
+		{_, {NodeName, IP}, UserList} -> io:format("found user ~p with ip ~p~nOriginal tuple list is ~p", [NodeName, IP, Users]), 
+										    unicastSend({NodeName, list_to_atom(lists:concat([NodeName, '@', IP])), Payload}),
+											io:format("Data is ~p~n", [UserList]),
+											[NextNodeInfo|_] = UserList,
+											{NextNodeName,_} = NextNodeInfo,
+											io:format("NNI: ~p~n", [NextNodeName]), 
+											multicastSend({NextNodeName, Node, Payload}, UserList);
+		false -> io:format("failed to find user ~p~n", [Name]);
+		Values -> io:format("Failed and found ~p~n", [Values])
+ 	end.
 
 
 recvMsg() ->
-	%try to receive a message. this probably doesn't happen like this, though.
-	io:format("Received a message"), 
+	%try to receive a message. this probably doesn't happen like this, though. 
 	receive
 		{Payload, FromName} ->        
 		io:format("Got message ~p from ~p!~n", [Payload, FromName]);
 		Message -> io:format("Hello World!~n", [])
 	end.
 
-message(ToName, Message) ->
-	%io:format("The registered names are ~p~n", [global:registered_names()]),
-	io:format("The registered names are ~p~n", [registered()]),
-    case whereis(ToName) of %case global:whereis_name(ToName) of % Test if the client is running
-        undefined ->
-            io:format("~p is ~p~n", [ToName, not_logged_on]);
-        Pid -> Pid ! {message_to, ToName, Message},
-             okman
-end.
-
-
-
-server_transfer(From, Name, To, Message, User_List) ->
-    %% Find the receiver and send the message
-    case lists:keysearch(To, 2, User_List) of
-        false ->
-            From ! {messenger, receiver_not_found};
-        {value, {ToPid, To}} ->
-            ToPid ! {message_from, Name, Message}, 
-            From ! {messenger, sent} 
-    end.
-
-
-getUsername(Name) ->
-	io:format("Adding user ~p~n", [Name]).
 
 start(Name) ->
-	%case global:register_name(Name, spawn(player, getUsername, [Name])) of
 	case register(Name, spawn(message_passing, recvMsg, [])) of
 		true -> %yes -> 
-			io:format("Successful add~n"),
-			io:format("The registered names are ~p~n", [registered()]);
+			io:format("Successful add~n");
+			%io:format("The registered names are ~p~n", [registered()]);
 		false -> %no -> 
 			io:format("Unable to add ~p~n", [Name])
 	end.
