@@ -4,30 +4,20 @@
 %% @doc @todo Add description to token_ring.
 %% This module inspired by trigonakis.com's Intro to Erlang: Message Passing segment
 
+%%To Do -- Receiver code, additional uni/multi capabilities, how to integrate Han's code.
+
 -module(message_passing).
 -export([unicastSend/1, multicastSend/2, startMC/1, recvMsg/0, start/1]).
 
 
 unicastSend({Name, Node, Payload}) ->
-	%Users = [{david, '128.237.135.133'}, {shifa, '128.237.238.133'}],
-	%case lists:keytake(Name, 1, Users) of
-	%	{_, {NodeName, IP}, [_]} -> io:format("found user ~p with ip ~p~nOriginal tuple list is ~p", [NodeName, IP, Users]);
-%		false -> io:format("failed to find user ~p~n", [Name]);
-%		Values -> io:format("Failed and found ~p~n", [Values])
-%	end.
 	io:format("Passed in name ~p, node ~p, and payload ~p~n", [Name, Node, Payload]),
 	{Name,Node}!{Payload,node()},
 	io:format("successfully sent message to ~p (~p)~n", [Name, Node]).
-	%message(Name, testMsg).
-	%{_,Name,_} = Message,
-	%case lists:member(Name, global:registered_names()) of %make sure it's registered
-	%	true -> message(Name, Message);
-	%	false -> register(Name, spawn(message_passing, Name, []))
-	%figure out the destination name from the Message body and try to send to it.
-	%end.
+
 
 startMC({Name, Node, Payload}) ->
-	Users = [{david, '128.237.135.133'}, {joe, '128.237.135.133'}],
+	Users = [{david, '128.237.135.133'}, {joe, '128.237.135.133'}, {shifa, '128.237.238.133'}],
 	multicastSend({Name, Node, Payload}, Users).
 
 
@@ -36,17 +26,20 @@ multicastSend({Name, Node, Payload}, Users) ->
 		{_, {NodeName, IP}, UserList} -> io:format("found user ~p with ip ~p~nOriginal tuple list is ~p", [NodeName, IP, Users]), 
 										    unicastSend({NodeName, list_to_atom(lists:concat([NodeName, '@', IP])), Payload}),
 											io:format("Data is ~p~n", [UserList]),
-											[NextNodeInfo|_] = UserList,
-											{NextNodeName,_} = NextNodeInfo,
-											io:format("NNI: ~p~n", [NextNodeName]), 
-											multicastSend({NextNodeName, Node, Payload}, UserList);
+											case UserList =/= [] of
+												true ->	[NextNodeInfo|_] = UserList,
+														{NextNodeName,_} = NextNodeInfo,
+														io:format("NNI: ~p~n", [NextNodeName]), 
+														multicastSend({NextNodeName, Node, Payload}, UserList);
+												_ -> io:format("bleh") %need to get rid of the printout
+											end;
 		false -> io:format("failed to find user ~p~n", [Name]);
 		Values -> io:format("Failed and found ~p~n", [Values])
  	end.
 
 
 recvMsg() ->
-	%try to receive a message. this probably doesn't happen like this, though. 
+	%Will need to be modified based on what we need to do at Erlang's level. 
 	receive
 		{Payload, FromName} ->        
 		io:format("Got message ~p from ~p!~n", [Payload, FromName]);
@@ -58,7 +51,6 @@ start(Name) ->
 	case register(Name, spawn(message_passing, recvMsg, [])) of
 		true -> %yes -> 
 			io:format("Successful add~n");
-			%io:format("The registered names are ~p~n", [registered()]);
 		false -> %no -> 
 			io:format("Unable to add ~p~n", [Name])
 	end.
